@@ -70,6 +70,7 @@ def test_openrouter_request_uses_schema_and_project_app_name(
     project = tmp_path / "visual-project"
     project.mkdir()
     monkeypatch.chdir(project)
+    monkeypatch.setenv("OPENROUTER_APP_URL", "https://example.test/vql")
     monkeypatch.delenv("OPENROUTER_APP_NAME", raising=False)
     captured: dict = {}
     response_content = json.dumps(_fixture("valid-vql-program.json"))
@@ -109,6 +110,7 @@ def test_openrouter_request_uses_schema_and_project_app_name(
     result = chat_completion(config, [{"role": "user", "content": "extract"}])
     assert result["model"] == "vision-model"
     assert captured["headers"]["X-title"] == "visual-project"
+    assert captured["headers"]["Http-referer"] == "https://example.test/vql"
     assert (
         captured["payload"]["response_format"]["json_schema"]["schema"] == load_schema()
     )

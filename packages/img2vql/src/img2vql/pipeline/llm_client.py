@@ -52,9 +52,9 @@ def chat_completion(
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {config.api_key}",
-            "HTTP-Referer": os.environ.get(
-                "OPENROUTER_SITE_URL", "https://github.com/oqlos/vql"
-            ),
+            "HTTP-Referer": os.environ.get("OPENROUTER_APP_URL", "").strip()
+            or os.environ.get("OPENROUTER_SITE_URL", "").strip()
+            or "https://github.com/oqlos/vql",
             "X-Title": os.environ.get("OPENROUTER_APP_NAME", "").strip()
             or Path.cwd().name
             or "vql",
