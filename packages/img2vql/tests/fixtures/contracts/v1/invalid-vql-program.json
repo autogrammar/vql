@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "render_target": "svg",
+  "scene": {
+    "width": 0,
+    "height": 600,
+    "layers": []
+  },
+  "metadata": {},
+  "command": "shell"
+}

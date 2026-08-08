@@ -13,6 +13,7 @@ dependencies = [
     "vql>=0.1.0",
     "img2nl>=0.1.0",
     "pillow>=10.0.0",
+    "jsonschema>=4.21",
 ]
 
 [project.optional-dependencies]
@@ -24,3 +25,10 @@ img2vql = "img2vql.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+img2vql = [
+    "contracts/v1/*.gbnf",
+    "contracts/v1/*.json",
+    "contracts/v1/*.proto",
+]

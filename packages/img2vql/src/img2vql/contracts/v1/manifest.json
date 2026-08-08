@@ -1,0 +1,18 @@
+{
+  "contract": "img2vql.VQLProgram",
+  "version": "1.0.0",
+  "payloadVersion": "1.0",
+  "boundary": "img2vql.pipeline.llm_vql.level5_llm_extract",
+  "mediaType": "application/json",
+  "artifacts": {
+    "grammar": "vql-program.gbnf",
+    "protobuf": "vql-program.proto",
+    "schema": "vql-program.schema.json"
+  },
+  "runtime": {
+    "prompt": "img2vql.pipeline.schema_prompt.build_vql_schema_prompt",
+    "providerConstraint": "img2vql.pipeline.llm_client.chat_completion",
+    "parser": "img2vql.pipeline.llm_vql.parse_vql_json_from_llm",
+    "semanticModel": "vql.schema.program.VQLProgram"
+  }
+}

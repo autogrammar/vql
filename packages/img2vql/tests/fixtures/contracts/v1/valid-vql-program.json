@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "render_target": "svg",
+  "scene": {
+    "width": 800,
+    "height": 600,
+    "background": "#FFFFFF",
+    "app": "demo",
+    "url": "vql://screen/demo",
+    "layers": [
+      {
+        "id": "llm_extracted",
+        "objects": [
+          {
+            "id": "save-button",
+            "primitives": [
+              {
+                "shape_type": "rectangle",
+                "params": { "width": 120, "height": 40 }
+              }
+            ],
+            "style": {
+              "color": "#3366FF",
+              "fill": true,
+              "stroke_width": 1,
+              "opacity": 1
+            },
+            "center_x": 700,
+            "center_y": 560,
+            "metadata": {
+              "role": "button",
+              "label": "Save",
+              "source": "llm_extract"
+            }
+          }
+        ],
+        "visible": true
+      }
+    ],
+    "relations": []
+  },
+  "validation": null,
+  "metadata": {
+    "source": "pipeline_llm",
+    "llm_extract": { "confidence": 0.9 }
+  }
+}

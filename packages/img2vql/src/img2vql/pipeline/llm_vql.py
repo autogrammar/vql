@@ -3,20 +3,29 @@
 from __future__ import annotations
 
 import json
-import re
+from pathlib import Path
 from typing import Any
 
+from img2vql.contracts import validate_payload
 from img2vql.pipeline.config import PipelineLLMConfig
-from img2vql.pipeline.llm_client import LLMClientError, build_vision_user_message, chat_completion
+from img2vql.pipeline.llm_client import (
+    LLMClientError,
+    build_vision_user_message,
+    chat_completion,
+)
 from img2vql.pipeline.schema_prompt import build_vql_schema_prompt
 from vql.schema.program import VQLProgram
 
 
-def _compact_fast_context(l1: dict[str, Any], l2: dict[str, Any] | None, l4: dict[str, Any] | None) -> dict[str, Any]:
+def _compact_fast_context(
+    l1: dict[str, Any], l2: dict[str, Any] | None, l4: dict[str, Any] | None
+) -> dict[str, Any]:
     ctx: dict[str, Any] = {
         "img2nl_text": l1.get("text", ""),
         "scene_class": (l1.get("metadata") or {}).get("scene_class", ""),
-        "dominant_colors": (l1.get("features") or {}).get("colors", {}).get("dominant", []),
+        "dominant_colors": (l1.get("features") or {})
+        .get("colors", {})
+        .get("dominant", []),
         "special_hits": (l1.get("metadata") or {}).get("special_hits", {}),
         "llm_hint": l1.get("llm_hint", {}),
         "dimensions": {"width": l1.get("width"), "height": l1.get("height")},
@@ -59,9 +68,13 @@ def build_llm_extraction_prompt(
     scene_height: int,
     locale: str,
 ) -> str:
-    schema_block = build_vql_schema_prompt(scene_width=scene_width, scene_height=scene_height)
+    schema_block = build_vql_schema_prompt(
+        scene_width=scene_width, scene_height=scene_height
+    )
     meta_json = json.dumps(fast_context, ensure_ascii=False, indent=2)
-    partial_json = json.dumps(_program_summary(partial_program), ensure_ascii=False, indent=2)
+    partial_json = json.dumps(
+        _program_summary(partial_program), ensure_ascii=False, indent=2
+    )
     return (
         "You are a VQL (Visual Query Language) extractor.\n"
         f"Locale for labels: {locale}.\n\n"
@@ -78,17 +91,16 @@ def build_llm_extraction_prompt(
 
 
 def parse_vql_json_from_llm(content: str) -> dict[str, Any]:
-    text = content.strip()
-    fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
-    if fence:
-        text = fence.group(1).strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end <= start:
-        raise LLMClientError("LLM response contains no JSON object")
-    data = json.loads(text[start : end + 1])
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise LLMClientError("LLM response must be a single JSON object") from exc
     if not isinstance(data, dict):
         raise LLMClientError("LLM JSON root must be an object")
+    try:
+        validate_payload(data)
+    except ValueError as exc:
+        raise LLMClientError(str(exc)) from exc
     return data
 
 
@@ -112,17 +124,36 @@ def level5_llm_extract(
     force: bool = False,
 ) -> dict[str, Any]:
     if not config.configured:
-        return {"level": "L5_llm", "ok": False, "skipped": True, "reason": "llm_not_configured"}
+        return {
+            "level": "L5_llm",
+            "ok": False,
+            "skipped": True,
+            "reason": "llm_not_configured",
+        }
 
     recommendation = (l4 or {}).get("recommendation", "")
     if not force:
         if recommendation == "skip_llm_blank_capture":
-            return {"level": "L5_llm", "ok": False, "skipped": True, "reason": recommendation}
+            return {
+                "level": "L5_llm",
+                "ok": False,
+                "skipped": True,
+                "reason": recommendation,
+            }
         if recommendation == "skip_unchanged_screen":
-            return {"level": "L5_llm", "ok": False, "skipped": True, "reason": recommendation}
+            return {
+                "level": "L5_llm",
+                "ok": False,
+                "skipped": True,
+                "reason": recommendation,
+            }
 
-    width = int(l1.get("width") or partial_program.get("scene", {}).get("width") or 1024)
-    height = int(l1.get("height") or partial_program.get("scene", {}).get("height") or 768)
+    width = int(
+        l1.get("width") or partial_program.get("scene", {}).get("width") or 1024
+    )
+    height = int(
+        l1.get("height") or partial_program.get("scene", {}).get("height") or 768
+    )
     fast_ctx = _compact_fast_context(l1, l2, l4)
     prompt = build_llm_extraction_prompt(
         fast_context=fast_ctx,
@@ -134,8 +165,13 @@ def level5_llm_extract(
 
     thumb = l1.get("thumbnail") or image_path
     messages = [
-        {"role": "system", "content": "You output strict JSON only — a valid VQLProgram for UI screenshots."},
-        build_vision_user_message(text=prompt, image_path=thumb, use_vision=config.vision),
+        {
+            "role": "system",
+            "content": "You output strict JSON only — a valid VQLProgram for UI screenshots.",
+        },
+        build_vision_user_message(
+            text=prompt, image_path=thumb, use_vision=config.vision
+        ),
     ]
 
     try:

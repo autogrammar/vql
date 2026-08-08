@@ -1,0 +1,44 @@
+root ::= ws "{" ws version ws "," ws render-target ws "," ws scene-field (ws "," ws validation-field)? ws "," ws metadata-field ws "}" ws
+version ::= "\"version\"" ws ":" ws "\"1.0\""
+render-target ::= "\"render_target\"" ws ":" ws ("\"svg\"" | "\"playwright\"" | "\"canvas\"")
+scene-field ::= "\"scene\"" ws ":" ws scene
+validation-field ::= "\"validation\"" ws ":" ws (validation | "null")
+metadata-field ::= "\"metadata\"" ws ":" ws object
+
+scene ::= "{" ws width ws "," ws height (ws "," ws background)? (ws "," ws app)? (ws "," ws url)? ws "," ws layers (ws "," ws relations)? ws "}"
+width ::= "\"width\"" ws ":" ws number
+height ::= "\"height\"" ws ":" ws number
+background ::= "\"background\"" ws ":" ws string
+app ::= "\"app\"" ws ":" ws string
+url ::= "\"url\"" ws ":" ws string
+layers ::= "\"layers\"" ws ":" ws "[" ws layer (ws "," ws layer)* ws "]"
+relations ::= "\"relations\"" ws ":" ws "[" ws (relation (ws "," ws relation)*)? ws "]"
+
+layer ::= "{" ws id ws "," ws objects (ws "," ws visible)? ws "}"
+id ::= "\"id\"" ws ":" ws string
+objects ::= "\"objects\"" ws ":" ws "[" ws vql-object (ws "," ws vql-object)* ws "]"
+visible ::= "\"visible\"" ws ":" ws boolean
+
+vql-object ::= "{" ws id ws "," ws primitives (ws "," ws style-field)? (ws "," ws transform-field)? ws "," ws center-x ws "," ws center-y (ws "," ws anchors)? (ws "," ws constraints)? (ws "," ws object-metadata)? ws "}"
+primitives ::= "\"primitives\"" ws ":" ws "[" ws primitive (ws "," ws primitive)* ws "]"
+primitive ::= "{" ws "\"shape_type\"" ws ":" ws string ws "," ws "\"params\"" ws ":" ws object ws "}"
+style-field ::= "\"style\"" ws ":" ws object
+transform-field ::= "\"transform\"" ws ":" ws object
+center-x ::= "\"center_x\"" ws ":" ws number
+center-y ::= "\"center_y\"" ws ":" ws number
+anchors ::= "\"anchors\"" ws ":" ws array
+constraints ::= "\"constraints\"" ws ":" ws array
+object-metadata ::= "\"metadata\"" ws ":" ws object
+
+relation ::= object
+validation ::= object
+object ::= "{" ws (pair (ws "," ws pair)*)? ws "}"
+pair ::= string ws ":" ws value
+array ::= "[" ws (value (ws "," ws value)*)? ws "]"
+value ::= string | number | object | array | boolean | "null"
+boolean ::= "true" | "false"
+number ::= "-"? ("0" | [1-9] [0-9]*) ("." [0-9]+)? ([eE] [+-]? [0-9]+)?
+string ::= "\"" char* "\""
+char ::= [^"\\\x00-\x1f] | "\\" (["\\/bfnrt] | "u" hex hex hex hex)
+hex ::= [0-9a-fA-F]
+ws ::= [ \t\n\r]*
