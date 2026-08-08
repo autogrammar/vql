@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
 
+from img2vql.contracts import response_format
 from img2vql.pipeline.config import DEFAULT_VQL_VISION_MODEL, PipelineLLMConfig
 
 
@@ -19,7 +21,9 @@ class LLMClientError(RuntimeError):
 def _image_to_data_url(path: str | Path) -> str:
     p = Path(path)
     suffix = p.suffix.lower().lstrip(".") or "png"
-    mime = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "webp": "webp"}.get(suffix, "png")
+    mime = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "webp": "webp"}.get(
+        suffix, "png"
+    )
     raw = p.read_bytes()
     b64 = base64.standard_b64encode(raw).decode("ascii")
     return f"data:image/{mime};base64,{b64}"
@@ -30,13 +34,16 @@ def chat_completion(
     messages: list[dict[str, Any]],
 ) -> dict[str, Any]:
     if not config.configured:
-        raise LLMClientError("LLM not configured: set VQL_LLM_ENABLED=1 and OPENROUTER_API_KEY in .env")
+        raise LLMClientError(
+            "LLM not configured: set VQL_LLM_ENABLED=1 and OPENROUTER_API_KEY in .env"
+        )
 
     body = {
         "model": config.model,
         "messages": messages,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
+        "response_format": response_format(),
     }
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
@@ -45,8 +52,12 @@ def chat_completion(
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {config.api_key}",
-            "HTTP-Referer": "https://github.com/oqlos/vql",
-            "X-Title": "vql-pipeline",
+            "HTTP-Referer": os.environ.get(
+                "OPENROUTER_SITE_URL", "https://github.com/oqlos/vql"
+            ),
+            "X-Title": os.environ.get("OPENROUTER_APP_NAME", "").strip()
+            or Path.cwd().name
+            or "vql",
         },
         method="POST",
     )
@@ -88,7 +99,10 @@ def build_vision_user_message(
             "role": "user",
             "content": [
                 {"type": "text", "text": text},
-                {"type": "image_url", "image_url": {"url": _image_to_data_url(image_path)}},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": _image_to_data_url(image_path)},
+                },
             ],
         }
     return {"role": "user", "content": text}

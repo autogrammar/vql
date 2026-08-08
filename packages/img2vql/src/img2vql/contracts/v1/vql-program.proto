@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package img2vql.contracts.v1;
+
+import "google/protobuf/struct.proto";
+
+message VQLProgram {
+  string version = 1;
+  RenderTarget render_target = 2;
+  Scene scene = 3;
+  ValidationSpec validation = 4;
+  google.protobuf.Struct metadata = 5;
+}
+
+enum RenderTarget {
+  render_target_unspecified = 0;
+  svg = 1;
+  playwright = 2;
+  canvas = 3;
+}
+
+message Scene {
+  double width = 1;
+  double height = 2;
+  string background = 3;
+  string url = 4;
+  string app = 5;
+  repeated Layer layers = 6;
+  repeated Relation relations = 7;
+}
+
+message Layer {
+  string id = 1;
+  repeated Object objects = 2;
+  bool visible = 3;
+}
+
+message Object {
+  string id = 1;
+  repeated Primitive primitives = 2;
+  Style style = 3;
+  Transform transform = 4;
+  double center_x = 5;
+  double center_y = 6;
+  repeated Anchor anchors = 7;
+  repeated Constraint constraints = 8;
+  google.protobuf.Struct metadata = 9;
+}
+
+message Primitive {
+  string shape_type = 1;
+  google.protobuf.Struct params = 2;
+}
+
+message Style {
+  string color = 1;
+  bool fill = 2;
+  double stroke_width = 3;
+  double opacity = 4;
+}
+
+message Transform {
+  double translate_x = 1;
+  double translate_y = 2;
+  double scale_x = 3;
+  double scale_y = 4;
+  double rotate_deg = 5;
+}
+
+message Anchor {
+  string name = 1;
+  double x = 2;
+  double y = 3;
+}
+
+message Constraint {
+  string kind = 1;
+  google.protobuf.Struct args = 2;
+}
+
+message Relation {
+  string kind = 1;
+  string source = 2;
+  string target = 3;
+  google.protobuf.Struct args = 4;
+}
+
+message ValidationSpec {
+  string description = 1;
+  repeated string expected_shapes = 2;
+  repeated string expected_colors = 3;
+  int32 min_objects = 4;
+  google.protobuf.Struct custom = 5;
+}

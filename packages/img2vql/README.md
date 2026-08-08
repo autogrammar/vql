@@ -70,6 +70,19 @@ adopt_screenshot("/tmp/screen.png", out_program="/tmp/ui.vql.json")
 
 Combine with [img2svg](../img2svg/README.md) for vector sidecar or [img2nl](https://github.com/wronai/img2nl) for full feature analysis.
 
+## LLM output contract
+
+Level L5 accepts only `VQLProgram` payload version `1.0` under contract bundle
+`1.0.0`. The packaged `img2vql/contracts/v1` directory contains its GBNF,
+Protobuf model, JSON Schema and boundary manifest. The same JSON Schema is
+embedded in the extraction prompt, sent to OpenRouter as `response_format`,
+and applied locally before constructing `VQLProgram`. Fenced or prose-wrapped
+JSON, unknown fields, invalid geometry and version drift fail closed.
+
+Set `OPENROUTER_APP_NAME` to control the OpenRouter App column; without it the
+current project folder name is used. The screenshot pipeline deliberately
+keeps a vision-capable `VQL_LLM_MODEL` rather than inheriting a text-only model.
+
 ## Related
 
 - [img2svg](../img2svg/README.md) — PNG → SVG
