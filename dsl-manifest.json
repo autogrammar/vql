@@ -43,17 +43,17 @@
     {
       "path": "packages/dsl2vql/src/dsl2vql/schema/commands/generate.schema.json",
       "role": "schema",
-      "digest": "sha256:45314e4ca7b6e10779187f7c82c1c8ea3316bf6ee764b8a358f4bd80f7c8408c"
+      "digest": "sha256:2607f308bb949532b0d96c73b9eeda1049e6f163f5bbd8faeb3a561f0f6eeecb"
     },
     {
       "path": "packages/dsl2vql/src/dsl2vql/schema/commands/patch.schema.json",
       "role": "schema",
-      "digest": "sha256:e57f4ad259cb4e2ea262a77cf56a68c5ffd47e9e29d082f147fca0f04a4e39e9"
+      "digest": "sha256:ac42b95b6da0b0817cdd7c637e0503c895fa88a54b0e9606946ce2eb54cc0e1d"
     },
     {
       "path": "packages/dsl2vql/src/dsl2vql/schema/commands/query.schema.json",
       "role": "schema",
-      "digest": "sha256:f2ab0b710c62db7c10fc0a510fe4971d057bfef934606d1ed0b4f1d63d3302ea"
+      "digest": "sha256:5f3db0366d8ab43102c69754ac67ec51c28724bd3cc21ef1a802936f4f50df89"
     },
     {
       "path": "packages/dsl2vql/src/dsl2vql/schema/commands/render.schema.json",
@@ -63,7 +63,7 @@
     {
       "path": "packages/dsl2vql/src/dsl2vql/schema/commands/validate.schema.json",
       "role": "schema",
-      "digest": "sha256:367ef2294d83da779abd9100f15c2845c62614fe95c1af9c84e005b1864f7aa0"
+      "digest": "sha256:6e8ed93184e73822d6164f31a59b66b0aafe00eda3340e3abfd38724a167e40c"
     },
     {
       "path": "packages/img2vql/src/img2vql/contracts/v1/vql-program.schema.json",

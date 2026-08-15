@@ -1,5 +1,9 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dsl2vql/commands/patch",
+  "title": "VQL command: PATCH",
+  "description": "Adopted from wellmanifest.dev/schemas/dsl-commands/patch",
+  "x-adopts": "https://wellmanifest.dev/schemas/dsl-commands/patch",
   "type": "object",
   "required": ["verb", "target", "with_path"],
   "properties": {

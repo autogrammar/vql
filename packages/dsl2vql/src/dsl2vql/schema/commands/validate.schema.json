@@ -1,5 +1,9 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dsl2vql/commands/validate",
+  "title": "VQL command: VALIDATE",
+  "description": "Adopted from wellmanifest.dev/schemas/dsl-commands/validate",
+  "x-adopts": "https://wellmanifest.dev/schemas/dsl-commands/validate",
   "type": "object",
   "required": ["verb", "path"],
   "properties": {

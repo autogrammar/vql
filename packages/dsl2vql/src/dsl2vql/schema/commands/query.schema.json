@@ -1,5 +1,9 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dsl2vql/commands/query",
+  "title": "VQL command: QUERY",
+  "description": "Adopted from wellmanifest.dev/schemas/dsl-commands/query",
+  "x-adopts": "https://wellmanifest.dev/schemas/dsl-commands/query",
   "type": "object",
   "required": ["verb", "target"],
   "properties": {

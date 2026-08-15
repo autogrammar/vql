@@ -1,5 +1,9 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dsl2vql/commands/generate",
+  "title": "VQL command: GENERATE",
+  "description": "Adopted from wellmanifest.dev/schemas/dsl-commands/generate",
+  "x-adopts": "https://wellmanifest.dev/schemas/dsl-commands/generate",
   "type": "object",
   "required": ["verb", "text"],
   "properties": {
