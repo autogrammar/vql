@@ -1,0 +1,209 @@
+{
+  "$schema": "https://wellmanifest.dev/schemas/dsl-manifest/v1",
+  "schema": "wellmanifest.dsl/manifest/v1",
+  "id": "autogrammar.vql",
+  "name": "VQL Visual Query Language",
+  "version": "0.1.7",
+  "status": "stable",
+  "purpose": "Visual Query Language for describing, generating, rendering and validating visual programs from screenshots and UI descriptions",
+  "domain": "visual-query",
+  "owners": [
+    {
+      "kind": "repository",
+      "id": "github:autogrammar/vql",
+      "responsibilities": ["semantics", "validation", "compatibility", "runtime", "security"]
+    }
+  ],
+  "source": {
+    "repository": "https://github.com/autogrammar/vql",
+    "path": "packages/dsl2vql/src/dsl2vql/schema/commands/compile.schema.json",
+    "declaredVersion": "1",
+    "canonical": "json-ast",
+    "mediaType": "application/schema+json",
+    "selectors": []
+  },
+  "ownedPaths": [
+    "dsl-manifest.json",
+    "README.md",
+    "docs/COMPILE.md",
+    "docs/GENERATE.md",
+    "docs/PATCH.md",
+    "docs/QUERY.md",
+    "docs/RENDER.md",
+    "docs/VALIDATE.md",
+    "packages/dsl2vql/src/dsl2vql/schema/commands/**",
+    "packages/img2vql/src/img2vql/contracts/v1/**"
+  ],
+  "artifacts": [
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/compile.schema.json",
+      "role": "normative-source",
+      "digest": "sha256:e89e40cb3ee33a18f12d27e4c322d510c4463756e541192f8580824b09bee925"
+    },
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/generate.schema.json",
+      "role": "schema",
+      "digest": "sha256:45314e4ca7b6e10779187f7c82c1c8ea3316bf6ee764b8a358f4bd80f7c8408c"
+    },
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/patch.schema.json",
+      "role": "schema",
+      "digest": "sha256:e57f4ad259cb4e2ea262a77cf56a68c5ffd47e9e29d082f147fca0f04a4e39e9"
+    },
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/query.schema.json",
+      "role": "schema",
+      "digest": "sha256:f2ab0b710c62db7c10fc0a510fe4971d057bfef934606d1ed0b4f1d63d3302ea"
+    },
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/render.schema.json",
+      "role": "schema",
+      "digest": "sha256:2e40f28d97286f6d38310b5c84a7ce1eec1ad1b02c4b5f61fd4560f967c5dabd"
+    },
+    {
+      "path": "packages/dsl2vql/src/dsl2vql/schema/commands/validate.schema.json",
+      "role": "schema",
+      "digest": "sha256:367ef2294d83da779abd9100f15c2845c62614fe95c1af9c84e005b1864f7aa0"
+    },
+    {
+      "path": "packages/img2vql/src/img2vql/contracts/v1/vql-program.schema.json",
+      "role": "schema",
+      "digest": "sha256:31ab1432bd1000e9bffbbb5ab5df13c632511c4712f282642073cb6450fc23ec"
+    },
+    {
+      "path": "README.md",
+      "role": "documentation",
+      "digest": "sha256:d4ae86a1d56982ddc3e6436a6d9b0b867886d2258fe29cf21c26f622387ebe5b"
+    },
+    {
+      "path": "docs/COMPILE.md",
+      "role": "documentation",
+      "digest": "sha256:d5acfb5e654a6ea9e099fbb2640bef5832393ff2310d01e2141e12825e7c316e"
+    },
+    {
+      "path": "docs/GENERATE.md",
+      "role": "documentation",
+      "digest": "sha256:8810423e145b716efab145a5f595d3e4503556181531838f50387cb43b0e3f54"
+    },
+    {
+      "path": "docs/PATCH.md",
+      "role": "documentation",
+      "digest": "sha256:15570c7544fe4991c83142825ea8140e1ffa5b48772cd1c1f3238d07697cea3c"
+    },
+    {
+      "path": "docs/QUERY.md",
+      "role": "documentation",
+      "digest": "sha256:813e7a639221c105e19f29ce5026374ff830c5dc3fb959f3bba8ee55b2ea87b9"
+    },
+    {
+      "path": "docs/RENDER.md",
+      "role": "documentation",
+      "digest": "sha256:ffcebab0d9d6ae7d55d4f9873b11c6d03ad7c6f5e61a3b38b8695e2178439d9e"
+    },
+    {
+      "path": "docs/VALIDATE.md",
+      "role": "documentation",
+      "digest": "sha256:a2f25307f48721ae46f944f793d7ef20179c728f249ecec43df37f8403c3b3be"
+    }
+  ],
+  "namespaces": [
+    {
+      "prefix": "vql",
+      "uri": "https://github.com/autogrammar/vql/"
+    }
+  ],
+  "projections": [
+    {
+      "name": "SVG render",
+      "mediaType": "image/svg+xml",
+      "direction": "from-canonical",
+      "lossless": false
+    },
+    {
+      "name": "PNG render",
+      "mediaType": "image/png",
+      "direction": "from-canonical",
+      "lossless": false
+    }
+  ],
+  "lifecycle": {
+    "compatibility": "semver",
+    "stability": "stable",
+    "breaking": "major",
+    "additive": "minor",
+    "fix": "patch"
+  },
+  "semantics": {
+    "effectModel": "propose-only",
+    "unknownPolicy": "reject",
+    "authoritySchema": null
+  },
+  "llm": {
+    "mode": "input",
+    "requestSchemas": ["packages/img2vql/src/img2vql/contracts/v1/vql-program.schema.json"],
+    "responseSchemas": [],
+    "naturalLanguage": "typed-source-only",
+    "sourceSchema": "autogrammar.vql/v1",
+    "modelAuthority": "propose-only",
+    "strict": true
+  },
+  "documentation": {
+    "vocabularyKind": "commands",
+    "commandRoot": "docs",
+    "errorRoot": "docs/ERROR",
+    "criticalRoot": "docs/CRITICAL",
+    "commands": ["COMPILE", "GENERATE", "PATCH", "QUERY", "RENDER", "VALIDATE"],
+    "errorCodes": [],
+    "criticalCodes": []
+  },
+  "findingPolicy": {
+    "schema": "wellmanifest.dsl/findings/v1",
+    "requiredProducers": ["autogrammar.vql.governance-check"],
+    "securityProducers": ["autogrammar.vql.governance-check"],
+    "blockingSeverities": ["critical"],
+    "requireEvaluable": true,
+    "blockUnresolvedSecurity": true
+  },
+  "publicationPolicy": {
+    "declaredTier": "review",
+    "deterministic": true,
+    "independentReview": true,
+    "externalAuthority": false,
+    "runtimeIsolation": false
+  },
+  "conformance": {
+    "levels": ["manifest", "contract"],
+    "commands": ["python -m pytest tests/"],
+    "validExamples": [],
+    "invalidExamples": []
+  },
+  "mappings": [
+    {
+      "standard": "wellmanifest.dsl",
+      "version": "0.1.0",
+      "relation": "implements",
+      "uri": "https://github.com/wellmanifest/dsl"
+    }
+  ],
+  "standardsLock": {
+    "schema": "wellmanifest.standards-lock/v1",
+    "entries": [
+      {
+        "standard": "wellmanifest.dsl",
+        "version": "0.1.0",
+        "repository": "https://github.com/wellmanifest/dsl",
+        "revision": "b7d0595c95e5abbb48ebfdbdae0bc6d43c6f82f4",
+        "contracts": [
+          {
+            "ref": "https://wellmanifest.dev/schemas/dsl-manifest/v1",
+            "digest": "sha256:34d356b76bbd483372df84bb986e15bb84e9c1f8b11b7dc9e3a6c7276c85ed13"
+          },
+          {
+            "ref": "https://wellmanifest.dev/spec/DSL_STANDARD.md",
+            "digest": "sha256:2dfb09b5689289c3ad096057ca1dc2f19512639e3662188dd6c5ee25e4e8c53b"
+          }
+        ]
+      }
+    ]
+  }
+}
