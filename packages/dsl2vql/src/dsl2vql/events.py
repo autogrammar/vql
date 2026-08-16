@@ -28,7 +28,7 @@ class DslEvent:
         return asdict(self)
 
 
-class EventStore:
+class VqlEventStore:
     def __init__(self, path: Path | str, *, fmt: StoreFormat | None = None) -> None:
         self.path = Path(path)
         if fmt is not None:
@@ -106,3 +106,6 @@ class EventStore:
 def default_event_store(default_file: str) -> EventStore:
     stem = Path(default_file).stem
     return EventStore(Path(default_file).with_name(f"{stem}.events.pb"), fmt="protobuf")
+
+
+EventStore = VqlEventStore
