@@ -9,13 +9,11 @@ from img2vql.metadata import merge_program_metadata
 from vql.schema.program import VQLProgram
 
 
-def from_screen_context(ctx: dict[str, Any]) -> VQLProgram:
-    """Convert vdisplay ScreenContext dict to VQLProgram."""
-    image_path = _image_path(ctx)
+def _program_from_context(ctx: dict[str, Any], image_path: str) -> VQLProgram:
     program_dict = ctx.get("vql", {}).get("program")
     if isinstance(program_dict, dict):
-        program = VQLProgram.from_dict(program_dict)
-    elif image_path and Path(image_path).is_file():
+        return VQLProgram.from_dict(program_dict)
+    if image_path and Path(image_path).is_file():
         try:
             from imgl.vdisplay_context import from_vdisplay_context
 
@@ -25,14 +23,17 @@ def from_screen_context(ctx: dict[str, Any]) -> VQLProgram:
                 from imgl.types import Scene
 
                 scene = Scene.from_dict(imgl_result["scene"])
-                program = VQLProgram.from_dict(scene_to_vql(scene))
-            else:
-                program = _fallback_program(ctx, image_path)
+                return VQLProgram.from_dict(scene_to_vql(scene))
         except ImportError:
-            program = _fallback_program(ctx, image_path)
-    else:
-        program = _fallback_program(ctx, image_path)
+            pass
+    return _fallback_program(ctx, image_path)
 
+
+def _context_metadata(
+    ctx: dict[str, Any],
+    program: VQLProgram,
+    image_path: str,
+) -> dict[str, Any]:
     metadata = dict(program.metadata or {})
     metadata["capture"] = _capture_block(ctx)
     metadata["environment"] = dict(ctx.get("environment") or {})
@@ -51,51 +52,79 @@ def from_screen_context(ctx: dict[str, Any]) -> VQLProgram:
         metadata["describe"] = describe
     if image_path:
         metadata = merge_program_metadata(metadata, image_path)
+    return metadata
+
+
+def from_screen_context(ctx: dict[str, Any]) -> VQLProgram:
+    """Convert vdisplay ScreenContext dict to VQLProgram."""
+    image_path = _image_path(ctx)
+    program = _program_from_context(ctx, image_path)
+    metadata = _context_metadata(ctx, program, image_path)
     program.metadata = metadata
     metadata["render_intent"] = reverse_generate(program)
     program.metadata = metadata
     return program
 
 
-def reverse_generate(program: VQLProgram | dict[str, Any]) -> dict[str, Any]:
-    """Build reverse-generation descriptor from VQL program metadata."""
-    if isinstance(program, VQLProgram):
-        payload = program.to_dict()
-    else:
-        payload = dict(program)
-    metadata = dict(payload.get("metadata") or {})
-    capture = metadata.get("capture") if isinstance(metadata.get("capture"), dict) else {}
-    scene = payload.get("scene") or {}
-    width = int(capture.get("width") or scene.get("width") or 0)
-    height = int(capture.get("height") or scene.get("height") or 0)
-    nl = str(metadata.get("nl") or "")
-    if not nl:
-        describe = metadata.get("describe")
-        if isinstance(describe, dict):
-            nl = str(describe.get("nl") or "")
-    descriptor: dict[str, Any] = {
-        "mode": "layout_reconstruction",
-        "canvas": {"width": width, "height": height},
-        "nl": nl,
-        "layers": [],
-        "prompt_block": nl or f"UI screenshot {width}x{height}",
-    }
+def _program_payload(program: VQLProgram | dict[str, Any]) -> dict[str, Any]:
+    return program.to_dict() if isinstance(program, VQLProgram) else dict(program)
+
+
+def _natural_language(metadata: dict[str, Any]) -> str:
+    direct = str(metadata.get("nl") or "")
+    if direct:
+        return direct
+    describe = metadata.get("describe")
+    return str(describe.get("nl") or "") if isinstance(describe, dict) else ""
+
+
+def _reverse_layers(payload: dict[str, Any], scene: dict[str, Any]) -> list[dict[str, Any]]:
+    layers: list[dict[str, Any]] = []
     for layer in payload.get("layers") or scene.get("layers") or []:
         for obj in layer.get("objects") or []:
-            meta = obj.get("metadata") or {}
-            descriptor["layers"].append(
+            metadata = obj.get("metadata") or {}
+            layers.append(
                 {
-                    "kind": meta.get("role") or layer.get("id"),
-                    "label": meta.get("label"),
+                    "kind": metadata.get("role") or layer.get("id"),
+                    "label": metadata.get("label"),
                     "center": [obj.get("center_x"), obj.get("center_y")],
                 }
             )
-    routing = metadata.get("routing") or metadata.get("environment", {}).get("routing")
-    if isinstance(routing, dict):
-        descriptor["routing_hint"] = {
-            "provider": routing.get("selected_provider"),
-            "profile": routing.get("application_profile"),
-        }
+    return layers
+
+
+def _routing_hint(metadata: dict[str, Any]) -> dict[str, Any] | None:
+    environment = metadata.get("environment")
+    environment_routing = environment.get("routing") if isinstance(environment, dict) else None
+    routing = metadata.get("routing") or environment_routing
+    if not isinstance(routing, dict):
+        return None
+    return {
+        "provider": routing.get("selected_provider"),
+        "profile": routing.get("application_profile"),
+    }
+
+
+def reverse_generate(program: VQLProgram | dict[str, Any]) -> dict[str, Any]:
+    """Build reverse-generation descriptor from VQL program metadata."""
+    payload = _program_payload(program)
+    metadata = dict(payload.get("metadata") or {})
+    capture_value = metadata.get("capture")
+    capture = capture_value if isinstance(capture_value, dict) else {}
+    scene = payload.get("scene") or {}
+    width = int(capture.get("width") or scene.get("width") or 0)
+    height = int(capture.get("height") or scene.get("height") or 0)
+    natural_language = _natural_language(metadata)
+    descriptor: dict[str, Any] = {
+        "mode": "layout_reconstruction",
+        "canvas": {"width": width, "height": height},
+        "nl": natural_language,
+        "layers": _reverse_layers(payload, scene),
+        "prompt_block": natural_language or f"UI screenshot {width}x{height}",
+    }
+    routing_hint = _routing_hint(metadata)
+    if routing_hint is not None:
+        descriptor["routing_hint"] = routing_hint
     return descriptor
 
 
