@@ -77,7 +77,7 @@ class _PathState:
         self.cx, self.cy = x2, y2
 
 
-def _dispatch_command(state: _PathState, cmd: str) -> None:
+def _dispatch_linear_command(state: _PathState, cmd: str) -> bool:
     if cmd == "M":
         state.start_subpath(state.next_num(), state.next_num())
         state.cmd = "L"
@@ -96,7 +96,13 @@ def _dispatch_command(state: _PathState, cmd: str) -> None:
         state.line_to(state.cx, state.next_num())
     elif cmd == "v":
         state.line_to(state.cx, state.cy + state.next_num())
-    elif cmd == "C":
+    else:
+        return False
+    return True
+
+
+def _dispatch_curve_command(state: _PathState, cmd: str) -> bool:
+    if cmd == "C":
         state.append_cubic(
             state.next_num(),
             state.next_num(),
@@ -123,7 +129,15 @@ def _dispatch_command(state: _PathState, cmd: str) -> None:
             state.cx + state.next_num(),
             state.cy + state.next_num(),
         )
-    elif cmd in ("Z", "z"):
+    else:
+        return False
+    return True
+
+
+def _dispatch_command(state: _PathState, cmd: str) -> None:
+    if _dispatch_linear_command(state, cmd) or _dispatch_curve_command(state, cmd):
+        return
+    if cmd in ("Z", "z"):
         state.close_subpath()
     elif cmd in _SKIP_PARAM_COUNTS:
         for _ in range(_SKIP_PARAM_COUNTS[cmd]):
