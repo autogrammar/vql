@@ -36,6 +36,58 @@ def normalize_locale(locale: str) -> str:
         return "en" if loc.startswith("en") else "pl"
 
 
+def _fallback_recommendation(
+    stats: dict[str, Any],
+    locale: str,
+    translator: Any,
+) -> tuple[str, bool, str]:
+    width, height = stats.get("width"), stats.get("height")
+    unique = int(stats.get("unique_colors_sampled", 0))
+    brightness = int(stats.get("brightness_avg", 0))
+    if stats.get("is_blank"):
+        text = (
+            translator("diag_blank", locale, w=width, h=height)
+            if translator
+            else f"Image {width}×{height} px looks blank/black."
+        )
+        return "skip_llm_blank_capture", False, text
+    if unique >= 8 and brightness >= 20:
+        text = (
+            translator(
+                "diag_send_llm",
+                locale,
+                w=width,
+                h=height,
+                unique=unique,
+                b_min=stats.get("brightness_min"),
+                b_max=stats.get("brightness_max"),
+            )
+            if translator
+            else f"Image {width}×{height} px, ~{unique} colors."
+        )
+        return "send_thumbnail_to_llm", True, text
+    text = (
+        translator("diag_grid_only", locale, w=width, h=height, unique=unique)
+        if translator
+        else f"Image {width}×{height} px, ~{unique} colors."
+    )
+    return "use_vql_grid_only", False, text
+
+
+def _attach_program_summary(out: dict[str, Any], vql_program: str | Path | None) -> None:
+    if not vql_program or not Path(vql_program).is_file():
+        return
+    try:
+        from vql.schema.program import VQLProgram
+
+        data = json.loads(Path(vql_program).read_text(encoding="utf-8"))
+        program = VQLProgram.from_dict(data)
+        out["vql_object_count"] = program.object_count()
+        out["vql_dominant_colors"] = program.metadata.get("dominant_colors", [])
+    except Exception as exc:
+        out["vql_error"] = str(exc)
+
+
 def diagnose_fallback(
     image: str | Path,
     *,
@@ -49,43 +101,14 @@ def diagnose_fallback(
     if not stats.get("ok"):
         return {"ok": False, "path": str(image), "error": stats.get("error", "image_stats failed")}
 
-    unique = int(stats.get("unique_colors_sampled", 0))
-    b_avg = int(stats.get("brightness_avg", 0))
-    is_blank = bool(stats.get("is_blank"))
-
     loc = normalize_locale(locale)
-    w, h = stats.get("width"), stats.get("height")
-    b_min, b_max = stats.get("brightness_min"), stats.get("brightness_max")
 
     try:
         from img2nl.i18n import t as i18n_t
     except ImportError:
         i18n_t = None
 
-    if is_blank:
-        recommendation = "skip_llm_blank_capture"
-        send = False
-        text = (
-            i18n_t("diag_blank", loc, w=w, h=h)
-            if i18n_t
-            else f"Image {w}×{h} px looks blank/black."
-        )
-    elif unique >= 8 and b_avg >= 20:
-        recommendation = "send_thumbnail_to_llm"
-        send = True
-        text = (
-            i18n_t("diag_send_llm", loc, w=w, h=h, unique=unique, b_min=b_min, b_max=b_max)
-            if i18n_t
-            else f"Image {w}×{h} px, ~{unique} colors."
-        )
-    else:
-        recommendation = "use_vql_grid_only"
-        send = False
-        text = (
-            i18n_t("diag_grid_only", loc, w=w, h=h, unique=unique)
-            if i18n_t
-            else f"Image {w}×{h} px, ~{unique} colors."
-        )
+    recommendation, send, text = _fallback_recommendation(stats, loc, i18n_t)
 
     out: dict[str, Any] = {
         "ok": True,
@@ -103,16 +126,7 @@ def diagnose_fallback(
         "source": "vql-fallback",
         "vql_program": str(vql_program) if vql_program else "",
     }
-    if vql_program and Path(vql_program).is_file():
-        try:
-            from vql.schema.program import VQLProgram
-
-            data = json.loads(Path(vql_program).read_text(encoding="utf-8"))
-            program = VQLProgram.from_dict(data)
-            out["vql_object_count"] = program.object_count()
-            out["vql_dominant_colors"] = program.metadata.get("dominant_colors", [])
-        except Exception as exc:
-            out["vql_error"] = str(exc)
+    _attach_program_summary(out, vql_program)
     return out
 
 

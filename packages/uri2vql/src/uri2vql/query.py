@@ -43,6 +43,27 @@ def _load_program(path: str):
     return VQLProgram.from_dict(data)
 
 
+def _selected_payload(program, data: dict[str, Any], selector: str) -> tuple[Any, str | None]:
+    if selector in {"program", ""}:
+        return data, None
+    if selector == "scene":
+        return data.get("scene", {}), None
+    if selector == "objects":
+        return [
+            obj.to_dict()
+            for layer in program.scene.layers
+            for obj in layer.objects
+        ], None
+    if selector.startswith("object/"):
+        object_id = selector.split("/", 1)[1]
+        payload = next(
+            (obj.to_dict() for obj in program.scene.iter_objects() if obj.id == object_id),
+            None,
+        )
+        return payload, None if payload is not None else f"object not found: {object_id}"
+    return data, None
+
+
 def query_uri(uri: str, *, file: str | None = None, fmt: str = "json") -> QueryResult:
     if uri.startswith("vql://window/"):
         from uri2vql.window import query_window
@@ -52,33 +73,15 @@ def query_uri(uri: str, *, file: str | None = None, fmt: str = "json") -> QueryR
         parsed = parse_vql_uri(uri, default_file=file or "app.vql.json")
         program = _load_program(parsed.file)
         data = program.to_dict()
-
-        if parsed.selector in {"program", ""}:
-            payload = data
-        elif parsed.selector == "scene":
-            payload = data.get("scene", {})
-        elif parsed.selector == "objects":
-            payload = [
-                obj.to_dict()
-                for layer in program.scene.layers
-                for obj in layer.objects
-            ]
-        elif parsed.selector.startswith("object/"):
-            obj_id = parsed.selector.split("/", 1)[1]
-            payload = next(
-                (obj.to_dict() for obj in program.scene.iter_objects() if obj.id == obj_id),
-                None,
+        payload, error = _selected_payload(program, data, parsed.selector)
+        if error:
+            return QueryResult(
+                ok=False,
+                uri=uri,
+                selector=parsed.selector,
+                file=parsed.file,
+                error=error,
             )
-            if payload is None:
-                return QueryResult(
-                    ok=False,
-                    uri=uri,
-                    selector=parsed.selector,
-                    file=parsed.file,
-                    error=f"object not found: {obj_id}",
-                )
-        else:
-            payload = data
 
         rendered = json.dumps(payload, ensure_ascii=False, indent=2)
         return QueryResult(
