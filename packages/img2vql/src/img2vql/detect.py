@@ -177,6 +177,87 @@ def _flood_rects(mask: list[list[bool]], *, min_area: int, max_area: int) -> lis
     return rects
 
 
+def _local_contrast_mask(pixels: list[tuple[int, int, int]], sw: int, sh: int) -> list[list[bool]]:
+    """Mark pixels that differ materially from their immediate neighborhood."""
+    mask = [[False] * sw for _ in range(sh)]
+    for y in range(1, sh - 1):
+        for x in range(1, sw - 1):
+            idx = y * sw + x
+            pixel = pixels[idx]
+            neighbors = [
+                pixels[(y + dy) * sw + (x + dx)]
+                for dy in (-1, 0, 1)
+                for dx in (-1, 0, 1)
+                if dx != 0 or dy != 0
+            ]
+            average = tuple(
+                sum(channel[i] for channel in neighbors) // len(neighbors)
+                for i in range(3)
+            )
+            difference = sum(
+                abs(actual - expected)
+                for actual, expected in zip(pixel, average, strict=True)
+            )
+            mask[y][x] = difference > 28
+    return mask
+
+
+def _button_role(aspect: float, width: int, height: int) -> tuple[str, str]:
+    if width <= 36 and height <= 36 and 0.7 <= aspect <= 1.4:
+        return "icon_button", "icon button"
+    return "button", "button"
+
+
+def _button_from_rect(
+    im,
+    rect: tuple[int, int, int, int],
+    *,
+    scale: float,
+    width: int,
+    height: int,
+    element_index: int,
+) -> UIElement | None:
+    x0, y0, x1, y1 = rect
+    rect_width, rect_height = x1 - x0, y1 - y0
+    if rect_width < 2 or rect_height < 2:
+        return None
+    aspect = rect_width / rect_height
+    if aspect < 0.25 or aspect > 6.0:
+        return None
+
+    fx0, fy0 = int(x0 / scale), int(y0 / scale)
+    fx1, fy1 = int(x1 / scale), int(y1 / scale)
+    button_width, button_height = fx1 - fx0, fy1 - fy0
+    confidence = 0.45
+    if (
+        1.5 <= aspect <= 4.0
+        and 18 <= button_width <= width * 0.25
+        and 14 <= button_height <= height * 0.08
+    ):
+        confidence = 0.68
+    role, label = _button_role(aspect, button_width, button_height)
+    center_x, center_y = (fx0 + fx1) / 2, (fy0 + fy1) / 2
+    return UIElement(
+        id=f"{role}_{element_index}",
+        role=role,
+        bbox=(fx0, fy0, fx1, fy1),
+        color=_hex_color(_avg_color(im, fx0, fy0, fx1, fy1)),
+        confidence=confidence,
+        label=label,
+        location=_location_label(center_x, center_y, width, height),
+        metadata={
+            "bbox_norm": [
+                round(fx0 / width, 4),
+                round(fy0 / height, 4),
+                round(fx1 / width, 4),
+                round(fy1 / height, 4),
+            ],
+            "aspect": round(aspect, 2),
+            "source": "contrast_blob",
+        },
+    )
+
+
 def _detect_buttons(im, w: int, h: int, *, scan_w: int = 320) -> list[UIElement]:
     """
     Compact high-contrast rectangles → button-like controls.
@@ -190,23 +271,7 @@ def _detect_buttons(im, w: int, h: int, *, scan_w: int = 320) -> list[UIElement]
     small = im.resize((sw, sh)).convert("RGB")
     pixels = list(small.get_flattened_data())
 
-    # Local contrast: pixel differs from neighborhood average
-    mask = [[False] * sw for _ in range(sh)]
-    for y in range(1, sh - 1):
-        for x in range(1, sw - 1):
-            idx = y * sw + x
-            r, g, b = pixels[idx]
-            neighbors = []
-            for dy in (-1, 0, 1):
-                for dx in (-1, 0, 1):
-                    if dx == 0 and dy == 0:
-                        continue
-                    ni = (y + dy) * sw + (x + dx)
-                    neighbors.append(pixels[ni])
-            avg = tuple(sum(c[i] for c in neighbors) // len(neighbors) for i in range(3))
-            diff = sum(abs(a - b) for a, b in zip((r, g, b), avg, strict=True))
-            mask[y][x] = diff > 28
-
+    mask = _local_contrast_mask(pixels, sw, sh)
     total = sw * sh
     min_area = max(4, int(total * 0.00015))
     max_area = max(min_area + 1, int(total * 0.012))
@@ -214,54 +279,19 @@ def _detect_buttons(im, w: int, h: int, *, scan_w: int = 320) -> list[UIElement]
 
     elements: list[UIElement] = []
     seen_boxes: list[tuple[int, int, int, int]] = []
-    for x0, y0, x1, y1 in rects:
-        rw, rh = x1 - x0, y1 - y0
-        if rw < 2 or rh < 2:
-            continue
-        aspect = rw / rh
-        if aspect < 0.25 or aspect > 6.0:
-            continue
-        fill_ratio = (x1 - x0) * (y1 - y0) / max(1, rw * rh)
-        if fill_ratio < 0.55:
-            continue
-
-        # Scale back to full image
-        fx0, fy0 = int(x0 / scale), int(y0 / scale)
-        fx1, fy1 = int(x1 / scale), int(y1 / scale)
-        box = (fx0, fy0, fx1, fy1)
-        if any(_iou(box, s) > 0.6 for s in seen_boxes):
-            continue
-        seen_boxes.append(box)
-
-        rgb = _avg_color(im, fx0, fy0, fx1, fy1)
-        cx, cy = (fx0 + fx1) / 2, (fy0 + fy1) / 2
-        bw, bh = fx1 - fx0, fy1 - fy0
-        conf = 0.45
-        if 1.5 <= aspect <= 4.0 and 18 <= bw <= w * 0.25 and 14 <= bh <= h * 0.08:
-            conf = 0.68
-        if bw <= 36 and bh <= 36 and 0.7 <= aspect <= 1.4:
-            role = "icon_button"
-            label = "icon button"
-        else:
-            role = "button"
-            label = "button"
-
-        elements.append(
-            UIElement(
-                id=f"{role}_{len(elements)}",
-                role=role,
-                bbox=box,
-                color=_hex_color(rgb),
-                confidence=conf,
-                label=label,
-                location=_location_label(cx, cy, w, h),
-                metadata={
-                    "bbox_norm": [round(fx0 / w, 4), round(fy0 / h, 4), round(fx1 / w, 4), round(fy1 / h, 4)],
-                    "aspect": round(aspect, 2),
-                    "source": "contrast_blob",
-                },
-            )
+    for rect in rects:
+        element = _button_from_rect(
+            im,
+            rect,
+            scale=scale,
+            width=w,
+            height=h,
+            element_index=len(elements),
         )
+        if element is None or any(_iou(element.bbox, seen) > 0.6 for seen in seen_boxes):
+            continue
+        seen_boxes.append(element.bbox)
+        elements.append(element)
 
     elements.sort(key=lambda e: (-e.confidence, -(e.width * e.height)))
     return elements[:24]
