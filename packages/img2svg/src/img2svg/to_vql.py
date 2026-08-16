@@ -23,6 +23,72 @@ def _background_from_regions(regions: list[dict[str, Any]]) -> str:
     return max(area_by_color, key=area_by_color.get)  # type: ignore[arg-type]
 
 
+def _path_object(path_data: dict[str, Any], index: int, method: str) -> Object:
+    fill_color = path_data.get("fill", "#CCCCCC")
+    filled = fill_color.lower() not in ("none", "transparent")
+    return Object(
+        id=path_data.get("id", f"path_{index}"),
+        primitives=[
+            Primitive(
+                shape_type="path",
+                params={
+                    "d": path_data["d"],
+                    "tx": path_data.get("tx", 0.0),
+                    "ty": path_data.get("ty", 0.0),
+                },
+            )
+        ],
+        style=Style(
+            color=fill_color if filled else "#CCCCCC",
+            fill=filled,
+            stroke_width=0.0 if filled else 1.0,
+        ),
+        center_x=0.0,
+        center_y=0.0,
+        metadata={
+            "source": f"img2svg_{method}",
+            "point_count": path_data.get("point_count", 0),
+        },
+    )
+
+
+def _region_object(region: dict[str, Any], index: int) -> Object:
+    width, height = region["width"], region["height"]
+    return Object(
+        id=f"region_{index:03d}",
+        primitives=[
+            Primitive(shape_type="rectangle", params={"width": width, "height": height})
+        ],
+        style=Style(color=region["color"], fill=True, stroke_width=0.0),
+        center_x=region["x"] + width / 2,
+        center_y=region["y"] + height / 2,
+        metadata={"source": "img2svg_regions", "grid": region.get("grid", [])},
+    )
+
+
+def _trace_objects(trace: dict[str, Any]) -> list[Object]:
+    method = str(trace.get("method", "path"))
+    if method in ("opencv_contour", "vtracer"):
+        return [
+            _path_object(path_data, index, method)
+            for index, path_data in enumerate(trace.get("paths", []))
+        ]
+    return [
+        _region_object(region, index)
+        for index, region in enumerate(trace.get("regions", []))
+    ]
+
+
+def _trace_background(trace: dict[str, Any]) -> str:
+    regions = trace.get("regions", [])
+    if regions:
+        return _background_from_regions(regions)
+    if trace.get("method") == "vtracer":
+        fills = [path.get("fill", "") for path in trace.get("paths", []) if path.get("fill")]
+        return fills[0] if fills else "#FFFFFF"
+    return "#1A1A1A"
+
+
 def trace_to_vql_program(trace: dict[str, Any], *, image_path: str | Path = "") -> VQLProgram:
     """Build VQL program from trace_image_regions() or trace_contours_opencv()."""
     if not trace.get("ok"):
@@ -31,64 +97,8 @@ def trace_to_vql_program(trace: dict[str, Any], *, image_path: str | Path = "") 
     w = float(trace.get("width", 1024))
     h = float(trace.get("height", 768))
     path = Path(image_path or trace.get("path", ""))
-    objects: list[Object] = []
-
-    if trace.get("method") in ("opencv_contour", "vtracer"):
-        for p in trace.get("paths", []):
-            fill_color = p.get("fill", "#CCCCCC")
-            filled = fill_color.lower() not in ("none", "transparent")
-            objects.append(
-                Object(
-                    id=p.get("id", f"path_{len(objects)}"),
-                    primitives=[
-                        Primitive(
-                            shape_type="path",
-                            params={
-                                "d": p["d"],
-                                "tx": p.get("tx", 0.0),
-                                "ty": p.get("ty", 0.0),
-                            },
-                        )
-                    ],
-                    style=Style(
-                        color=fill_color if filled else "#CCCCCC",
-                        fill=filled,
-                        stroke_width=0.0 if filled else 1.0,
-                    ),
-                    center_x=0.0,
-                    center_y=0.0,
-                    metadata={
-                        "source": f"img2svg_{trace.get('method', 'path')}",
-                        "point_count": p.get("point_count", 0),
-                    },
-                )
-            )
-    else:
-        for i, reg in enumerate(trace.get("regions", [])):
-            rw, rh = reg["width"], reg["height"]
-            cx = reg["x"] + rw / 2
-            cy = reg["y"] + rh / 2
-            objects.append(
-                Object(
-                    id=f"region_{i:03d}",
-                    primitives=[
-                        Primitive(shape_type="rectangle", params={"width": rw, "height": rh})
-                    ],
-                    style=Style(color=reg["color"], fill=True, stroke_width=0.0),
-                    center_x=cx,
-                    center_y=cy,
-                    metadata={"source": "img2svg_regions", "grid": reg.get("grid", [])},
-                )
-            )
-
-    regions = trace.get("regions", [])
-    if regions:
-        background = _background_from_regions(regions)
-    elif trace.get("method") == "vtracer":
-        fills = [p.get("fill", "") for p in trace.get("paths", []) if p.get("fill")]
-        background = fills[0] if fills else "#FFFFFF"
-    else:
-        background = "#1A1A1A"
+    objects = _trace_objects(trace)
+    background = _trace_background(trace)
 
     return VQLProgram(
         scene=Scene(
