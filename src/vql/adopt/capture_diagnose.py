@@ -19,6 +19,65 @@ from vql.adopt.capture_policy import (
 from vql.adopt.capture_types import CaptureAttempt, CaptureInfo, require_pillow
 
 
+def _run_portal_capture(
+    name: str,
+    probe: Path,
+    *,
+    interactive: bool,
+) -> tuple[CaptureInfo | None, str, dict[str, Any]]:
+    py = portal_python()
+    if not py or not PORTAL_CAPTURE_SCRIPT.is_file():
+        return None, "portal python (python3-dbus, python3-gi) not found", {}
+
+    cmd = [py, str(PORTAL_CAPTURE_SCRIPT), "--out", str(probe)]
+    if name == "portal-interactive" or interactive:
+        cmd.append("--interactive")
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=45, check=False)
+    try:
+        payload = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        payload = {"error": (proc.stderr or proc.stdout or "").strip()}
+    if payload.get("ok") and probe.is_file() and not image_is_blank(probe):
+        return finalize_capture(probe, source="xdg-portal"), "", payload
+    return None, str(payload.get("error") or ""), payload
+
+
+def _run_capture_backend(
+    name: str,
+    backend: Any,
+    probe: Path,
+    *,
+    interactive: bool,
+) -> tuple[CaptureInfo | None, str, dict[str, Any]]:
+    try:
+        if name.startswith("portal"):
+            return _run_portal_capture(name, probe, interactive=interactive)
+        return backend(probe), "", {}
+    except Exception as exc:
+        return None, str(exc), {}
+
+
+def _failed_capture_attempt(
+    name: str,
+    probe: Path,
+    *,
+    error: str,
+    portal_payload: dict[str, Any],
+) -> CaptureAttempt:
+    blank = probe.is_file() and image_is_blank(probe)
+    if blank:
+        error = error or "image saved but all black (GNOME Screen Recording permission?)"
+    elif probe.is_file():
+        error = error or "image saved but rejected"
+    else:
+        error = error or "backend unavailable or produced no file"
+
+    stats = image_stats(probe) if probe.is_file() else {}
+    if portal_payload:
+        stats = {**stats, "portal": portal_payload}
+    return CaptureAttempt(backend=name, ok=False, blank=blank, error=error, stats=stats)
+
+
 def capture_diagnose(
     out: str | Path | None = None,
     *,
@@ -33,32 +92,12 @@ def capture_diagnose(
 
     for name, backend in capture_backends(monitor=monitor, interactive_portal=interactive):
         probe = path.with_name(f"{path.stem}.{name}{path.suffix}")
-        info: CaptureInfo | None = None
-        err = ""
-        portal_payload: dict[str, Any] = {}
-        try:
-            if name.startswith("portal"):
-                py = portal_python()
-                if py and PORTAL_CAPTURE_SCRIPT.is_file():
-                    cmd = [py, str(PORTAL_CAPTURE_SCRIPT), "--out", str(probe)]
-                    if name == "portal-interactive" or interactive:
-                        cmd.append("--interactive")
-                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=45, check=False)
-                    try:
-                        portal_payload = json.loads(proc.stdout or "{}")
-                    except json.JSONDecodeError:
-                        portal_payload = {"error": (proc.stderr or proc.stdout or "").strip()}
-                    if portal_payload.get("ok") and probe.is_file() and not image_is_blank(probe):
-                        info = finalize_capture(probe, source="xdg-portal")
-                    elif portal_payload.get("error"):
-                        err = str(portal_payload["error"])
-                else:
-                    err = "portal python (python3-dbus, python3-gi) not found"
-            else:
-                info = backend(probe)
-        except Exception as exc:
-            err = str(exc)
-
+        info, error, portal_payload = _run_capture_backend(
+            name,
+            backend,
+            probe,
+            interactive=interactive,
+        )
         if info is not None:
             attempts.append(
                 CaptureAttempt(
@@ -70,18 +109,14 @@ def capture_diagnose(
             )
             break
 
-        blank = probe.is_file() and image_is_blank(probe)
-        if blank:
-            err = err or "image saved but all black (GNOME Screen Recording permission?)"
-        elif probe.is_file():
-            err = err or "image saved but rejected"
-        elif not err:
-            err = "backend unavailable or produced no file"
-
-        stats = image_stats(probe) if probe.is_file() else {}
-        if portal_payload:
-            stats = {**stats, "portal": portal_payload}
-        attempts.append(CaptureAttempt(backend=name, ok=False, blank=blank, error=err, stats=stats))
+        attempts.append(
+            _failed_capture_attempt(
+                name,
+                probe,
+                error=error,
+                portal_payload=portal_payload,
+            )
+        )
         if probe.is_file():
             probe.unlink(missing_ok=True)
 
