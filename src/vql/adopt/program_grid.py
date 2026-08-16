@@ -9,41 +9,80 @@ from vql.adopt.capture_types import CaptureInfo, require_pillow
 from vql.adopt.program_enrichment import enrich_program_metadata
 from vql.schema.program import Layer, Object, Primitive, Scene, Style, VQLProgram
 
+GridColor = tuple[int, int, int]
+GridRegion = tuple[int, int, int, int, GridColor]
+
 
 def hex_color(rgb: tuple[int, int, int]) -> str:
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
 
 
+def _horizontal_span(
+    colors: list[list[GridColor]],
+    visited: list[list[bool]],
+    gx: int,
+    gy: int,
+    grid: int,
+    base: GridColor,
+) -> int:
+    span = 1
+    while gx + span < grid and not visited[gy][gx + span] and colors[gy][gx + span] == base:
+        span += 1
+    return span
+
+
+def _row_matches(
+    colors: list[list[GridColor]],
+    visited: list[list[bool]],
+    gx: int,
+    gy: int,
+    width: int,
+    base: GridColor,
+) -> bool:
+    return all(
+        not visited[gy][gx + dx] and colors[gy][gx + dx] == base
+        for dx in range(width)
+    )
+
+
+def _vertical_span(
+    colors: list[list[GridColor]],
+    visited: list[list[bool]],
+    gx: int,
+    gy: int,
+    grid: int,
+    width: int,
+    base: GridColor,
+) -> int:
+    span = 1
+    while gy + span < grid and _row_matches(colors, visited, gx, gy + span, width, base):
+        span += 1
+    return span
+
+
+def _mark_region(visited: list[list[bool]], gx: int, gy: int, width: int, height: int) -> None:
+    for dy in range(height):
+        for dx in range(width):
+            visited[gy + dy][gx + dx] = True
+
+
 def merge_grid_colors(
-    colors: list[list[tuple[int, int, int]]],
+    colors: list[list[GridColor]],
     *,
     grid: int,
-) -> list[tuple[int, int, int, int, tuple[int, int, int]]]:
+) -> list[GridRegion]:
     """Return merged rectangles as (gx, gy, w_span, h_span, rgb)."""
     visited = [[False] * grid for _ in range(grid)]
-    merged: list[tuple[int, int, int, int, tuple[int, int, int]]] = []
+    merged: list[GridRegion] = []
 
     for gy in range(grid):
         for gx in range(grid):
             if visited[gy][gx]:
                 continue
             base = colors[gy][gx]
-            w_span = 1
-            while gx + w_span < grid and not visited[gy][gx + w_span] and colors[gy][gx + w_span] == base:
-                w_span += 1
-            h_span = 1
-            while gy + h_span < grid:
-                ok = True
-                for dx in range(w_span):
-                    if visited[gy + h_span][gx + dx] or colors[gy + h_span][gx + dx] != base:
-                        ok = False
-                        break
-                if not ok:
-                    break
-                h_span += 1
-            for dy in range(h_span):
-                for dx in range(w_span):
-                    visited[gy + dy][gx + dx] = True
+            w_span = _horizontal_span(colors, visited, gx, gy, grid, base)
+            h_span = _vertical_span(colors, visited, gx, gy, grid, w_span, base)
+            _mark_region(visited, gx, gy, w_span, h_span)
             merged.append((gx, gy, w_span, h_span, base))
     return merged
 

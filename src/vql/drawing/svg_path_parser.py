@@ -150,6 +150,36 @@ def _tokenize_path(d: str) -> list[str]:
     return _PATH_TOKEN_RE.findall(d)
 
 
+def _centering_transform(all_points: PointGroup) -> tuple[float, float, float]:
+    min_x = min(point[0] for point in all_points)
+    max_x = max(point[0] for point in all_points)
+    min_y = min(point[1] for point in all_points)
+    max_y = max(point[1] for point in all_points)
+    offset_x = (min_x + max_x) / 2
+    offset_y = (min_y + max_y) / 2
+    normalization = max(max_x - min_x or 1, max_y - min_y or 1) / 2
+    return offset_x, offset_y, normalization
+
+
+def _scaled_group(
+    group: PointGroup,
+    *,
+    scale: float,
+    center: bool,
+    transform: tuple[float, float, float],
+) -> PointGroup:
+    if not center:
+        return [(x * scale, y * scale) for x, y in group]
+    offset_x, offset_y, normalization = transform
+    return [
+        (
+            (x - offset_x) / normalization * scale * 100,
+            (y - offset_y) / normalization * scale * 100,
+        )
+        for x, y in group
+    ]
+
+
 def _scale_groups(
     groups: list[PointGroup],
     *,
@@ -160,28 +190,11 @@ def _scale_groups(
     if not all_pts:
         return groups
 
-    if center:
-        min_x = min(p[0] for p in all_pts)
-        max_x = max(p[0] for p in all_pts)
-        min_y = min(p[1] for p in all_pts)
-        max_y = max(p[1] for p in all_pts)
-        off_x = (min_x + max_x) / 2
-        off_y = (min_y + max_y) / 2
-        norm = max(max_x - min_x or 1, max_y - min_y or 1) / 2
-    else:
-        off_x, off_y, norm = 0.0, 0.0, 1.0
-
-    result: list[PointGroup] = []
-    for group in groups:
-        if center:
-            scaled = [
-                ((x - off_x) / norm * scale * 100, (y - off_y) / norm * scale * 100)
-                for x, y in group
-            ]
-        else:
-            scaled = [(x * scale, y * scale) for x, y in group]
-        result.append(scaled)
-    return result
+    transform = _centering_transform(all_pts) if center else (0.0, 0.0, 1.0)
+    return [
+        _scaled_group(group, scale=scale, center=center, transform=transform)
+        for group in groups
+    ]
 
 
 def parse_svg_path(d: str, scale: float = 1.0, center: bool = True) -> list[PointGroup]:

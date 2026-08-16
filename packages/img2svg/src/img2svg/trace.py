@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
 
+GridColor = tuple[int, int, int]
+ColorGrid = list[list[GridColor]]
+VisitedGrid = list[list[bool]]
+
 
 @dataclass
 class TracedRegion:
@@ -38,8 +42,63 @@ def _hex_color(rgb: tuple[int, int, int]) -> str:
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
 
 
+def _horizontal_span(
+    colors: ColorGrid,
+    visited: VisitedGrid,
+    gx: int,
+    gy: int,
+    grid: int,
+    base: GridColor,
+) -> int:
+    span = 1
+    while gx + span < grid and not visited[gy][gx + span] and colors[gy][gx + span] == base:
+        span += 1
+    return span
+
+
+def _row_matches(
+    colors: ColorGrid,
+    visited: VisitedGrid,
+    gx: int,
+    gy: int,
+    width: int,
+    base: GridColor,
+) -> bool:
+    return all(
+        not visited[gy][gx + dx] and colors[gy][gx + dx] == base
+        for dx in range(width)
+    )
+
+
+def _vertical_span(
+    colors: ColorGrid,
+    visited: VisitedGrid,
+    gx: int,
+    gy: int,
+    grid: int,
+    width: int,
+    base: GridColor,
+) -> int:
+    span = 1
+    while gy + span < grid and _row_matches(colors, visited, gx, gy + span, width, base):
+        span += 1
+    return span
+
+
+def _mark_region(
+    visited: VisitedGrid,
+    gx: int,
+    gy: int,
+    width: int,
+    height: int,
+) -> None:
+    for dy in range(height):
+        for dx in range(width):
+            visited[gy + dy][gx + dx] = True
+
+
 def _merge_grid_cells(
-    colors: list[list[tuple[int, int, int]]],
+    colors: ColorGrid,
     *,
     grid: int,
     cell_w: float,
@@ -54,24 +113,9 @@ def _merge_grid_cells(
             if visited[gy][gx]:
                 continue
             base = colors[gy][gx]
-            # Expand horizontally
-            w_span = 1
-            while gx + w_span < grid and not visited[gy][gx + w_span] and colors[gy][gx + w_span] == base:
-                w_span += 1
-            # Expand vertically while full row matches
-            h_span = 1
-            while gy + h_span < grid:
-                ok = True
-                for dx in range(w_span):
-                    if visited[gy + h_span][gx + dx] or colors[gy + h_span][gx + dx] != base:
-                        ok = False
-                        break
-                if not ok:
-                    break
-                h_span += 1
-            for dy in range(h_span):
-                for dx in range(w_span):
-                    visited[gy + dy][gx + dx] = True
+            w_span = _horizontal_span(colors, visited, gx, gy, grid, base)
+            h_span = _vertical_span(colors, visited, gx, gy, grid, w_span, base)
+            _mark_region(visited, gx, gy, w_span, h_span)
             regions.append(
                 TracedRegion(
                     x=gx * cell_w,
