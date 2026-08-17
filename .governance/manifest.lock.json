@@ -18,7 +18,7 @@
     ".governance/intent.schema.json": "c5cee010aabcc09dce13e12583848371a7b3eacc898b253cd9bb455d4eba6801",
     ".governance/lock.schema.json": "fc6f1143ef713c993b61270dd2d7545a52cb0b8501aadb188e6d0152a208b207",
     ".governance/manifest.base.json": "dfccc0af1b6e27f6bd29f6f97c1778c5f66932dd9da7c33fa63a2c4ce071910c",
-    ".governance/manifest.json": "ec49eeafc24f090c6d2b34ffc1dda10c34814aad0b9cf0cac34b3b1e626ce29e",
+    ".governance/manifest.json": "998ca79d394d76466d8c48a20f76e5158ed83579e10768a6cb2cdaf2cc56cd0f",
     ".governance/manifest.schema.json": "d48f258e3397ac2d8c5010e5ccdeef9eaf87b0b015d56798d11d5916c5f70a18",
     ".governance/package-manifest.json": "7d356f590f312b4983519e21de840387e8c561f11a53e2db13f012098dd27b07",
     ".governance/required-checks.json": "579e008e2dba9110ce45d34fdd96768fa28c003a339cf338378d28fe00fb83a2",

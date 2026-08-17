@@ -26,7 +26,8 @@
       "core": {
         "ownedPaths": [
           "src/**",
-          "tests/**"
+          "tests/**",
+          "testql-scenarios/**"
         ]
       },
       "governance": {
