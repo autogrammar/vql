@@ -402,3 +402,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Koru/planfile runtime artifacts
+.koru/
+.nlp2dsl/
+.planfile/
