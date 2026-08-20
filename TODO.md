@@ -6,6 +6,11 @@
 
 ---
 
+## Active governance work
+
+- [ ] `ticket-003`: preserve the rescued maximal-rectangle program-grid
+  regression contract without replacing newer canonical refactors.
+
 ## 📋 Current Issues (showing 200 of 426)
 
 - [ ] packages/dsl2img2svg/src/dsl2img2svg/cli.py:6 - Unused import sys
