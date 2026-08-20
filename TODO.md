@@ -8,7 +8,7 @@
 
 ## Active governance work
 
-- [ ] `ticket-003`: preserve the rescued maximal-rectangle program-grid
+- [x] `ticket-003`: preserve the rescued maximal-rectangle program-grid
   regression contract without replacing newer canonical refactors.
 
 ## 📋 Current Issues (showing 200 of 426)

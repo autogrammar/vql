@@ -22,8 +22,13 @@ contract.
 
 ## Actual changes
 
-- Ticket scope and execution authorization recorded.
+- Added `tests/test_program_grid.py`, preserving the rescued exact-region
+  contract against the newer canonical implementation.
+- Confirmed the eleven rescued source modifications represent older variants
+  of refactorings already present in canonical history; none were overlaid.
+- Ran the focused grid suite: 2 passed.
+- Ran governance validation: pass, zero errors and warnings.
 
 ## Blockers
 
-- None. The user's "kontynuuj" is recorded as session execution authorization.
+- None.

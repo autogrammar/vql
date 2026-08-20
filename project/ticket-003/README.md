@@ -17,9 +17,9 @@ must not overwrite them.
 ## Acceptance criteria
 
 - [x] AC-01: Continued execution is authorized by the user's "kontynuuj".
-- [ ] AC-02: The rescued maximal-rectangle contract is present as a focused test.
-- [ ] AC-03: Focused and existing screenshot-grid tests pass.
-- [ ] AC-04: Repository governance validation passes.
+- [x] AC-02: The rescued maximal-rectangle contract is present as a focused test.
+- [x] AC-03: Focused and existing screenshot-grid tests pass (2/2).
+- [x] AC-04: Repository governance validation passes with zero warnings.
 
 ## Participants
 

@@ -1,0 +1,4 @@
+2026-08-20T09:30:00+02:00 implementation completed
+pytest tests/test_program_grid.py tests/test_screenshot_merge.py: PASS (2/2)
+governance: PASS (0 errors, 0 warnings)
+source refactor overlay: skipped as superseded by canonical implementations
