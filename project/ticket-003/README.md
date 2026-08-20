@@ -2,8 +2,8 @@
 
 - **ID**: ticket-003
 - **Owner**: unresolved:human
-- **Status**: IN_PROGRESS
-- **Workflow state**: EDIT
+- **Status**: DONE
+- **Workflow state**: REVIEW
 - **Session execution authorization**: user requested "kontynuuj" on 2026-08-20
 - **Created**: 2026-08-20
 
