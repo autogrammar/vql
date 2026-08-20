@@ -1,0 +1,4 @@
+2026-08-20T00:00:00+02:00 verification completed
+governance: PASS (0 errors, 0 warnings)
+testql generated CLI scenario: PASS (7/7)
+implementation changes: none
