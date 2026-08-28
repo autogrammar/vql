@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
-import json
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+_MUTATION_ENV = "VQL_MCP_ALLOW_MUTATION"
+
+
+def _require_mutation(action: str) -> None:
+    enabled = os.getenv(_MUTATION_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+    if not enabled:
+        raise PermissionError(
+            f"MCP mutation '{action}' is disabled; start the server with {_MUTATION_ENV}=1"
+        )
 
 
 def _require_fastmcp():
@@ -41,16 +52,19 @@ class VqlMCPServer:
 
         @self.app.tool()
         def vql_run_dsl(script: str, default_file: str = "") -> list[dict[str, Any]]:
+            _require_mutation("vql_run_dsl")
             results = execute_dsl(script, default_file=default_file or None)
             return [r.to_dict() for r in results]
 
         @self.app.tool()
         def vql_run_command(command: str, default_file: str = "") -> dict[str, Any]:
+            _require_mutation("vql_run_command")
             result = execute_dsl_line(command, default_file=default_file or None)
             return result.to_dict()
 
         @self.app.tool()
         def vql_run_command_pb(envelope_bytes: bytes, default_file: str = "") -> bytes:
+            _require_mutation("vql_run_command_pb")
             result = dispatch(envelope_bytes, default_file=default_file or None)
             return encode_result_protobuf(result)
 
@@ -59,12 +73,19 @@ class VqlMCPServer:
             return to_dsl(prompt)
 
         @self.app.tool()
-        def vql_apply_nl(prompt: str, default_file: str = "") -> dict[str, Any]:
-            return apply_nl(prompt, file=default_file or None).to_dict()
+        def vql_apply_nl(
+            prompt: str,
+            default_file: str = "",
+            execute: bool = False,
+        ) -> dict[str, Any]:
+            if execute:
+                _require_mutation("vql_apply_nl")
+            return apply_nl(prompt, file=default_file or None, execute=execute).to_dict()
 
         @self.app.tool()
         def vql_patch(uri: str, with_path: str, file: str = "") -> dict[str, Any]:
-            content = open(with_path, encoding="utf-8").read()
+            _require_mutation("vql_patch")
+            content = Path(with_path).read_text(encoding="utf-8")
             return patch_uri(uri, content=content, file=file or None).to_dict()
 
         @self.app.tool()
@@ -98,6 +119,8 @@ class VqlMCPServer:
             """img2nl diagnose for screenshot; optionally persist to VQL program metadata."""
             from img2vql.diagnose import diagnose_for_vql
 
+            if save:
+                _require_mutation("vql_diagnose_window")
             return diagnose_for_vql(
                 image,
                 vql_program=vql_program or None,
@@ -116,6 +139,7 @@ class VqlMCPServer:
             from img2vql.metadata import refresh_program_metadata
             from uri2vql.window import _resolve_window_image
 
+            _require_mutation("vql_refresh_window_metadata")
             img = _resolve_window_image(vql_program, image or None)
             if not img:
                 return {"ok": False, "error": "image missing; pass image or set metadata.image"}
