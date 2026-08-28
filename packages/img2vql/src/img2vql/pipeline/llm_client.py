@@ -55,7 +55,7 @@ def chat_completion(
             "HTTP-Referer": os.environ.get("OPENROUTER_APP_URL", "").strip()
             or os.environ.get("OPENROUTER_SITE_URL", "").strip()
             or "https://github.com/oqlos/vql",
-            "X-Title": os.environ.get("OPENROUTER_APP_NAME", "").strip()
+            "X-OpenRouter-Title": os.environ.get("OPENROUTER_APP_NAME", "").strip()
             or Path.cwd().name
             or "vql",
         },
