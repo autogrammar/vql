@@ -2,8 +2,8 @@
 
 - **ID**: ticket-004
 - **Owner**: unresolved:human
-- **Status**: IN_PROGRESS
-- **Workflow state**: EDIT
+- **Status**: DONE
+- **Workflow state**: DONE
 - **Session execution authorization**: user requested “kontynuuj” — standardize VQL OpenRouter attribution.
 - **Created**: 2026-08-28
 
