@@ -19,6 +19,9 @@ dependencies = [
 [project.optional-dependencies]
 opencv = ["opencv-python-headless>=4.8.0"]
 ocr = ["rapidocr-onnxruntime>=1.3.0"]
+llm = [
+    "subactor-subllm @ git+https://github.com/subactor/subllm.git@40726bb9399eb5cf9dfc038c1c948b7d2fbdca3b",
+]
 
 [project.scripts]
 img2vql = "img2vql.cli:main"

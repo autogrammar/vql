@@ -116,6 +116,42 @@ def test_openrouter_request_uses_schema_and_project_app_name(
     )
 
 
+def test_image_messages_use_central_subllm_vision(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_complete(application, function, messages, **kwargs):
+        captured.update(application=application, function=function, kwargs=kwargs)
+        return type("Response", (), {"content": '{"ok":true}', "model": "z-ai/glm-4.5v", "usage": {}})()
+
+    monkeypatch.setattr("img2vql.pipeline.llm_client.subllm_complete", fake_complete)
+    config = PipelineLLMConfig(
+        enabled=True,
+        api_key="test-key",
+        model="ignored-by-policy",
+        base_url="https://openrouter.ai/api/v1",
+        vision=True,
+        temperature=0,
+        max_tokens=1000,
+        timeout_s=30,
+    )
+    result = chat_completion(
+        config,
+        [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,aaa"}},
+                    {"type": "text", "text": "extract"},
+                ],
+            }
+        ],
+    )
+    assert result["content"] == '{"ok":true}'
+    assert captured["application"] == "autogrammar-vql"
+    assert captured["function"] == "vision"
+    assert captured["kwargs"]["credentials"] == {"openrouter": "test-key"}
+
+
 def test_manifest_and_models_share_versions_and_artifacts() -> None:
     manifest = json.loads((CONTRACTS / "manifest.json").read_text(encoding="utf-8"))
     proto = (CONTRACTS / "vql-program.proto").read_text(encoding="utf-8")

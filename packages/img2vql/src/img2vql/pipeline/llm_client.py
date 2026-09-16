@@ -7,11 +7,17 @@ import json
 import os
 import urllib.error
 import urllib.request
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
 from img2vql.contracts import response_format
 from img2vql.pipeline.config import DEFAULT_VQL_VISION_MODEL, PipelineLLMConfig
+
+try:
+    from subllm import complete as subllm_complete
+except ImportError:
+    subllm_complete = None
 
 
 class LLMClientError(RuntimeError):
@@ -29,6 +35,17 @@ def _image_to_data_url(path: str | Path) -> str:
     return f"data:image/{mime};base64,{b64}"
 
 
+def _messages_have_image(messages: Sequence[Mapping[str, Any]]) -> bool:
+    for message in messages:
+        content = message.get("content")
+        if not isinstance(content, list):
+            continue
+        for part in content:
+            if isinstance(part, Mapping) and part.get("type") == "image_url":
+                return True
+    return False
+
+
 def chat_completion(
     config: PipelineLLMConfig,
     messages: list[dict[str, Any]],
@@ -37,6 +54,27 @@ def chat_completion(
         raise LLMClientError(
             "LLM not configured: set VQL_LLM_ENABLED=1 and OPENROUTER_API_KEY in .env"
         )
+
+    if _messages_have_image(messages):
+        if subllm_complete is None:
+            raise LLMClientError("subactor-subllm is not installed")
+        try:
+            response = subllm_complete(
+                "autogrammar-vql",
+                "vision",
+                messages,
+                response_format=response_format(),
+                timeout_seconds=float(config.timeout_s),
+                credentials={"openrouter": config.api_key},
+            )
+        except Exception as exc:
+            raise LLMClientError(f"SubLLM vision request failed: {exc}") from exc
+        return {
+            "content": response.content,
+            "model": response.model,
+            "usage": dict(response.usage),
+            "raw": {},
+        }
 
     body = {
         "model": config.model,
