@@ -35,8 +35,14 @@ dev = [
 packages = ["src/vql"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages"]
-pythonpath = ["src", "packages/dsl2vql/src", "packages/uri2vql/src", "packages/nlp2vql/src"]
+testpaths = ["tests"]
+pythonpath = [".", "src", "packages/dsl2vql/src", "packages/uri2vql/src", "packages/nlp2vql/src", "packages/mcp2vql/src", "packages/img2vql/src"]
+addopts = "-p wellmanifest_governance"
+
+[tool.wellmanifest]
+standard = "0.20.35"
+revision = "cfaa0bf0ea6b0e7349fed0bb62b5ce15792d687d"
+gate = "project/governance-check.sh"
 
 [tool.costs]
 # AI Cost tracking configuration
