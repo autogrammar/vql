@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:229a8f4c227ebfaeb32a76f2b4cbeec94589d96e57922d5f80b91d2222e964b0
 WORKDIR /app
 COPY pyproject.toml ./
 COPY src/ ./src/
