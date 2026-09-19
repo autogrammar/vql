@@ -1,0 +1,13 @@
+{
+  "intent": "Upgrade wellmanifest/new-project governance standard to 0.20.35",
+  "scope": {
+    "allowedPaths": [".governance/**",".subactor/**",".gitignore",".gitattributes",".githooks/**",".github/**",".cursor/**",".aider.conf.yml","AGENTS.md","CLAUDE.md","GEMINI.md","pyproject.toml","project/**","scripts/**","worktree-guard.yaml","wellmanifest_governance.py","project.sh","project.bat"],
+    "maxImplementationFiles": 200
+  },
+  "standardAdoption": {
+    "standardId": "wellmanifest/new-project",
+    "targetVersion": "0.20.35",
+    "sourceRevision": "cfaa0bf0ea6b0e7349fed0bb62b5ce15792d687d",
+    "managedTargetTakeovers": [{"path": "AGENTS.md", "baseDigest": "9437506d6d7ce9b5b938cc550de3aa869f680542688a1d9c92754d030b2ff8d3", "reason": "Project-specific agent instructions"}]
+  }
+}
